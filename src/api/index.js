@@ -1,5 +1,6 @@
 import { version } from '../../package.json';
 import { Router } from 'express';
+import * as _ from 'lodash';
 const q = require('q');
 var Promise = q.Promise;
 var googleMaps = require('@google/maps').createClient({
@@ -35,7 +36,10 @@ export default ({ config, db }) => {
 			restaurantPromise,
 			barPromise,
 			activityPromise
-		]).spread(function(restaurant,bar,activity){
+		]).spread(function(restaurants,bars,activities){
+			const restaurant = _.sample(restaurants.json.results);
+			const bar = _.sample(bars.json.results);
+			const activity = _.sample(activities.json.results);
 			res.json({ restaurant, bar, activity });
 		})
 		.catch( e => {
