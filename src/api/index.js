@@ -1,6 +1,11 @@
 import { version } from '../../package.json';
 import { Router } from 'express';
-import * as googleMaps from '@google/maps';
+const q = require('q');
+var Promise = q.Promise;
+var googleMaps = require('@google/maps').createClient({
+	Promise: Promise,
+  key:process.env.GOOGLE_PLACE_API_KEY
+});
 
 export default ({ config, db }) => {
 	let api = Router();
@@ -8,24 +13,34 @@ export default ({ config, db }) => {
 	// perhaps expose some API metadata at the root
 	api.get('/', (req, res) => {
 		console.log(process.env.GOOGLE_PLACE_API_KEY);
-		googleMaps.createClient({
-			key:process.env.GOOGLE_PLACE_API_KEY
-		})
-		googleMaps.places({
-      query: 'fast food',
-      language: 'en',
-      location: [-33.865, 151.038],
+		const restaurantPromise = googleMaps.places({
+      location: [39.0976763,-77.03652979999998],
       radius: 5000,
-      minprice: 1,
-      maxprice: 4,
-      opennow: true,
       type: 'restaurant'
     })
     .asPromise()
-    .then(function(response) {
-			console.log(response);
-    })
-		res.json({ version });
+		const barPromise = googleMaps.places({
+			location: [39.0976763,-77.03652979999998],
+			radius: 5000,
+			type: 'bar'
+		})
+		.asPromise()
+		const activityPromise = googleMaps.places({
+			location: [39.0976763,-77.03652979999998],
+			radius: 5000,
+			type: 'museum'
+		})
+		.asPromise()
+		q.all([
+			restaurantPromise,
+			barPromise,
+			activityPromise
+		]).spread(function(restaurant,bar,activity){
+			res.json({ restaurant, bar, activity });
+		})
+		.catch( e => {
+			console.log(e)
+		})
 	});
 
 	return api;
