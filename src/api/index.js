@@ -14,6 +14,7 @@ export default ({ config, db }) => {
 	// perhaps expose some API metadata at the root
 	api.get('/', (req, res) => {
 		console.log(process.env.GOOGLE_PLACE_API_KEY);
+		let restaurant, bar, activity;
 		const restaurantPromise = googleMaps.places({
       location: [39.0976763,-77.03652979999998],
       radius: 5000,
@@ -37,9 +38,26 @@ export default ({ config, db }) => {
 			barPromise,
 			activityPromise
 		]).spread(function(restaurants,bars,activities){
-			const restaurant = _.sample(restaurants.json.results);
-			const bar = _.sample(bars.json.results);
-			const activity = _.sample(activities.json.results);
+			restaurant = _.sample(restaurants.json.results);
+			bar = _.sample(bars.json.results);
+			activity = _.sample(activities.json.results);
+
+			const promises = [restaurant, bar, activity].map( o => {
+			  if(o.photos) {
+			    return googleMaps.placesPhoto({
+			      photoreference: o.photos[0].photo_reference
+			    }).asPromise()
+			  }
+			  else {
+			    q.when()
+			  }
+			})
+			return q.all(promises)
+		}).spread(function(restaurantPic, barPic, activityPic){
+			// console.log(restaurantPic);
+			// restaurant.photo = restaurantPic;
+			// bar.photo = barPic;
+			// activity.photo = activityPic;
 			res.json({ restaurant, bar, activity });
 		})
 		.catch( e => {
